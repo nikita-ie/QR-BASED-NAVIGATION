@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Waypoint — Campus Delivery Map</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+  <div id="topbar">
+    <div class="brand-shell">
+      <div class="brand-mark"><img src="/manus-storage/waypoint-mark_4ce79bdd.png" alt="" /></div>
+      <div class="wordmark-wrap">
+        <div class="wordmark"><span class="dot"></span>WAYPOINT</div>
+        <span class="tagline" id="tagline-text">scan once, find any exact spot on campus</span>
+      </div>
+    </div>
+    <div class="section-divider" aria-hidden="true"></div>
+    <div class="topbar-context" aria-label="Application context"><span>FIELD SYSTEM</span><span>Campus navigator</span></div>
+
+    <div id="searchbox">
+      <input id="search-input" type="text" aria-label="Search college or area name" placeholder="Search college / area name…" />
+      <button id="search-btn">Locate</button>
+    </div>
+
+    <div id="topbar-right">
+      <button class="btn" id="owner-btn">Owner access</button>
+      <button class="btn btn-accent" id="toggle-add">Add waypoint</button>
+      <button class="btn" id="toggle-3d" aria-pressed="false">3D buildings</button>
+      <button class="btn" id="share-btn">Campus QR</button>
+      <span id="status-msg"></span>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="map">
+      <div class="map-texture" aria-hidden="true"></div>
+      <div class="map-stage-title" aria-hidden="true"><span class="live-dot"></span><strong>MAP STAGE</strong><span>OSM / LIVE CANVAS</span></div>
+      <div class="map-key" aria-hidden="true"><i></i><span>WAYPOINT SIGNAL</span></div>
+      <div id="viewer-banner">Viewing only — select a location for exact walking directions</div>
+      <div id="map-hint">Click the EXACT spot — this is what visitors will be navigated to</div>
+      <div id="add-form">
+        <h3>New Waypoint</h3>
+        <div class="coord-preview" id="coord-preview">--, --</div>
+        <label>Name</label>
+        <input id="wp-name" type="text" placeholder="e.g. Boys Hostel — Block C" />
+        <label>Category</label>
+        <div class="cat-chips" id="wp-cat-chips"></div>
+        <div class="row">
+          <button class="btn" id="wp-cancel">Cancel</button>
+          <button class="btn btn-accent" id="wp-confirm">Add Pin</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="sidebar">
+      <div id="sidebar-head">
+        <div class="sidebar-kicker">LOCATION REGISTER</div>
+        <h2>Waypoint Manifest</h2>
+        <p id="wp-count">0 locations mapped</p>
+      </div>
+      <div id="wp-list"></div>
+      <div id="sidebar-foot">
+        <button class="btn" id="export-btn">⬇ Export list</button>
+        <button class="btn" id="clear-btn">🗑 Clear all</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="print-sheet"></div>
+
+<div id="modal-overlay">
+  <div id="modal-box"></div>
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
