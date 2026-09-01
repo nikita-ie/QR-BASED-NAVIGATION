@@ -32,6 +32,7 @@ let ownerPin = null;      // stored (shared) — the passcode the owner set
 let isOwner = false;      // this session only
 let mapTitle = '';        // stored (shared) — display name for this campus map
 let userLoc = null;       // visitor's live GPS, used for distance + directions accuracy
+let listQuery = '';       // current search text filtering the waypoint manifest
 
 /* ---------------- Modal helpers ---------------- */
 function openModal(html){
@@ -400,6 +401,19 @@ function renderList(){
     ordered = waypoints.slice().reverse();
   }
 
+  if(listQuery){
+    const q = listQuery.toLowerCase();
+    ordered = ordered.filter(wp =>
+      wp.name.toLowerCase().includes(q) ||
+      wp.code.toLowerCase().includes(q) ||
+      CATEGORIES[wp.cat].label.toLowerCase().includes(q)
+    );
+    if(ordered.length === 0){
+      list.innerHTML = '<div id="wp-no-results">No waypoints match "' + escapeHtml(listQuery) + '".</div>';
+      return;
+    }
+  }
+
   ordered.forEach(wp => {
     const c = CATEGORIES[wp.cat];
     const coordLine = userLoc
@@ -422,11 +436,13 @@ function renderList(){
           '</div>' +
         '</div>' +
       '</div>';
+    card.dataset.id = wp.id;
     list.appendChild(card);
   });
 
   list.querySelectorAll('button').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation(); // don't also trigger the card's own click-to-focus handler below
       const id = btn.dataset.id;
       const wp = waypoints.find(w => w.id === id);
       if(!wp) return;
@@ -438,6 +454,19 @@ function renderList(){
       } else if(btn.dataset.act === 'edit'){
         openEditRow(wp);
       }
+    });
+  });
+
+  // Click anywhere on a waypoint card (outside its buttons/links) to pop its
+  // location up on the map — pan to it and open its popup.
+  list.querySelectorAll('.ticket').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if(e.target.closest('button') || e.target.closest('a') || e.target.closest('.edit-row')) return;
+      const id = card.dataset.id;
+      const wp = waypoints.find(w => w.id === id);
+      if(!wp || !markerLayer[id]) return;
+      map.setView([wp.lat, wp.lng], 19);
+      markerLayer[id].openPopup();
     });
   });
 }
@@ -581,6 +610,21 @@ document.getElementById('search-btn').addEventListener('click', () => {
 });
 document.getElementById('search-input').addEventListener('keydown', (e) => {
   if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('search-btn').click(); }
+});
+
+/* ---------------- Manifest (waypoint list) search ---------------- */
+document.getElementById('wp-search').addEventListener('input', (e) => {
+  listQuery = e.target.value.trim();
+  document.getElementById('wp-search-clear').style.display = listQuery ? 'block' : 'none';
+  renderList();
+});
+document.getElementById('wp-search-clear').addEventListener('click', () => {
+  listQuery = '';
+  const input = document.getElementById('wp-search');
+  input.value = '';
+  document.getElementById('wp-search-clear').style.display = 'none';
+  renderList();
+  input.focus();
 });
 
 function setStatus(msg){

@@ -286,3 +286,39 @@
    chain) or it just grows to fit every item instead of scrolling. */
 #sidebar{min-height:0;overflow:hidden;}
 #wp-list{flex:1 1 auto;min-height:0;max-height:100%;overflow-y:auto;}
+
+/* ---- Wave Manifest fix: scrollable list + search bar ----
+   Root cause of the "cards squish to fit one page" bug: .ticket had no
+   flex-shrink:0, so as flex children of a column with a bounded height,
+   the browser shrank each card instead of letting #wp-list overflow and
+   scroll. Setting flex-shrink:0 forces cards to keep their natural height,
+   so once they no longer fit, the list scrolls instead of compressing. */
+.ticket{flex-shrink:0;}
+
+#wp-search-wrap{position:relative;margin-top:10px;}
+#wp-search{
+  width:100%;
+  background:rgba(3,14,24,.38);
+  border:1px solid var(--border);
+  color:var(--text);
+  padding:8px 30px 8px 10px;
+  border-radius:9px;
+  font-size:12px;
+  font-family:'DM Sans',sans-serif;
+  outline:none;
+  transition:border-color .15s var(--ease-out),box-shadow .15s var(--ease-out);
+}
+#wp-search::placeholder{color:var(--text-dim);}
+#wp-search:focus{border-color:rgba(216,255,68,.58);box-shadow:0 0 0 3px rgba(216,255,68,.07);}
+#wp-search-clear{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:var(--text-dim);cursor:pointer;
+  font-size:11px;padding:4px 6px;line-height:1;
+}
+#wp-search-clear:hover{color:var(--accent);}
+#wp-no-results{padding:18px 4px;text-align:center;color:var(--text-dim);font-size:12px;}
+
+/* Clicking anywhere on a ticket (not just the Focus button) pans the map
+   and opens that waypoint's popup. */
+.ticket{cursor:pointer;}
+.ticket .ticket-actions{cursor:default;}
