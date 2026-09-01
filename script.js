@@ -1,3 +1,18 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+import { getDatabase, ref, get, set, onValue } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDuQt4SWSlH0xYaFXtZgK069Zre9A5Fiwg",
+  authDomain: "waypoint-57c7b.firebaseapp.com",
+  databaseURL: "https://waypoint-57c7b-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "waypoint-57c7b",
+  storageBucket: "waypoint-57c7b.firebasestorage.app",
+  messagingSenderId: "971481412931",
+  appId: "1:971481412931:web:3f8bc1b9dd263c33eeebf6"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getDatabase(fbApp);
+
 /* ---------------- Config ---------------- */
 const CATEGORIES = {
   gate:    { label: 'Main Gate / Entry',   color: '#38BDF8', code: 'GATE' },
@@ -576,35 +591,54 @@ function setStatus(msg){
 }
 
 /* ---------------- Persistence ---------------- */
-// Uses window.storage when available (Claude artifact preview), and always
-// mirrors to localStorage so data survives reloads when this file is hosted
-// or opened as a standalone page — window.storage doesn't exist there.
-async function storageGet(key, shared){
+// Backed by Firebase Realtime Database, so every device that loads this page
+// (owner or QR-scanning visitor) reads/writes the same shared data. Falls
+// back to localStorage only if Firebase is unreachable (e.g. offline), so
+// the page doesn't hard-crash — but that fallback is local-only and won't
+// sync to other devices.
+async function storageGet(key){
   try{
-    if(window.storage){
-      const res = await window.storage.get(key, shared);
-      if(res && res.value !== undefined && res.value !== null) return res.value;
-    }
-  } catch(err){ /* window.storage unavailable outside Claude — fall through */ }
-  try{ return localStorage.getItem('waypoint_' + key); }
-  catch(err){ return null; }
+    const snap = await get(ref(db, key));
+    if(snap.exists()) return snap.val();
+    return null;
+  } catch(err){
+    console.error('Firebase read failed, falling back to local cache', err);
+    try{ return localStorage.getItem('waypoint_' + key); } catch(e){ return null; }
+  }
 }
-async function storageSet(key, value, shared){
-  try{ if(window.storage) await window.storage.set(key, value, shared); }
-  catch(err){ /* window.storage unavailable outside Claude — fine, localStorage still runs */ }
-  try{ localStorage.setItem('waypoint_' + key, value); }
-  catch(err){ console.error('localStorage save failed', err); }
+async function storageSet(key, value){
+  try{
+    await set(ref(db, key), value);
+  } catch(err){
+    console.error('Firebase write failed — this change will NOT be visible to other devices', err);
+    setStatus('⚠️ Could not save to shared database — check your connection.');
+  }
+  try{ localStorage.setItem('waypoint_' + key, typeof value === 'string' ? value : JSON.stringify(value)); }
+  catch(e){ /* local cache best-effort only */ }
 }
 
-async function saveWaypoints(){ await storageSet('campus-waypoints', JSON.stringify(waypoints), true); }
+async function saveWaypoints(){ await storageSet('campus-waypoints', waypoints); }
 async function loadWaypoints(){
-  const val = await storageGet('campus-waypoints', true);
-  waypoints = val ? JSON.parse(val) : [];
+  const val = await storageGet('campus-waypoints');
+  waypoints = val ? (Array.isArray(val) ? val : Object.values(val)) : [];
 }
-async function saveOwnerPin(){ await storageSet('owner-pin', ownerPin, true); }
-async function loadOwnerPin(){ ownerPin = await storageGet('owner-pin', true); }
-async function saveMapTitle(){ await storageSet('campus-title', mapTitle, true); }
-async function loadMapTitle(){ mapTitle = (await storageGet('campus-title', true)) || ''; }
+async function saveOwnerPin(){ await storageSet('owner-pin', ownerPin); }
+async function loadOwnerPin(){ ownerPin = await storageGet('owner-pin'); }
+async function saveMapTitle(){ await storageSet('campus-title', mapTitle); }
+async function loadMapTitle(){ mapTitle = (await storageGet('campus-title')) || ''; }
+
+// Live sync: if the owner adds/edits waypoints on one device, any other
+// open tab (e.g. a visitor already viewing the map) updates automatically
+// without needing to refresh.
+function startLiveSync(){
+  onValue(ref(db, 'campus-waypoints'), (snap) => {
+    if(!snap.exists()) return;
+    const val = snap.val();
+    waypoints = Array.isArray(val) ? val : Object.values(val || {});
+    renderAllMarkers();
+    renderList();
+  });
+}
 
 /* ---------------- Boot ---------------- */
 (async function boot(){
@@ -613,8 +647,11 @@ async function loadMapTitle(){ mapTitle = (await storageGet('campus-title', true
   await loadOwnerPin();
   await loadMapTitle();
   await loadWaypoints();
+  renderAllMarkers();
+  renderList();
   if(mapTitle){ document.getElementById('tagline-text').textContent = mapTitle; }
   updateOwnerUI();
   tryLocate();
   setStatus(ownerPin ? 'Search your college, then log in as owner to add exact locations.' : 'Search your college, then claim owner access to start pinning exact locations.');
+  startLiveSync();
 })();
