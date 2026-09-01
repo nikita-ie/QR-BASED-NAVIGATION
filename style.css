@@ -295,6 +295,17 @@
    so once they no longer fit, the list scrolls instead of compressing. */
 .ticket{flex-shrink:0;}
 
+/* Second half of the same bug class: #sidebar-head (title + count + search
+   bar) had no flex-shrink:0 either. Because #wp-list uses flex:1 (a
+   flex-basis of 0), it contributes zero weight to the flexbox shrink
+   calculation even though it's the one that should scroll — so ALL the
+   shrinking got dumped onto #sidebar-head instead. Combined with its
+   overflow:hidden, that silently clipped off the search box (the last
+   thing in the header) as soon as the waypoint list grew tall enough to
+   need scrolling. Locking sidebar-head's height stops it from ever being
+   shrunk, so #wp-list is what scrolls, as intended. */
+#sidebar-head{flex-shrink:0;}
+
 #wp-search-wrap{position:relative;margin-top:10px;}
 #wp-search{
   width:100%;
